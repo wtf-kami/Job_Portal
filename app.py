@@ -6,7 +6,7 @@ from sqlalchemy import or_ , cast, String
 
 app = Flask(__name__)
 app.secret_key = '546bba35450ab4c5183fed98d3b332ae'
-app.config['SQLALCHEMY_DATABASE_URI'] ='postgresql://postgres:[YOUR_PASSWORD]@db.ubxsdebwtptlctecfivd.supabase.co:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] ='postgresql://postgres:02496@db.ubxsdebwtptlctecfivd.supabase.co:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -280,3 +280,4 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True)
+
