@@ -6,7 +6,7 @@ from sqlalchemy import or_ , cast, String
 
 app = Flask(__name__)
 app.secret_key = '546bba35450ab4c5183fed98d3b332ae'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:02496@localhost/job_portal'
+app.config['SQLALCHEMY_DATABASE_URI'] ='postgresql://postgres:[YOUR_PASSWORD]@db.ubxsdebwtptlctecfivd.supabase.co:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -278,4 +278,5 @@ def job_posting():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+
     app.run(debug=True)
