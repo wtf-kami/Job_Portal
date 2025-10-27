@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Onboarding — Profile Setup</title>
+  <style>
+    :root{ --bg:#fff7f3; --card:#fff; --muted:#6b7280; --accent:#f97316; }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+      background:linear-gradient(180deg,#fff7f3,#fffaf8);
+      min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    }
+    .wrap{
+      max-width:780px;width:100%;background:var(--card);
+      padding:32px;border-radius:16px;box-shadow:0 10px 40px rgba(17,24,39,.08)
+    }
+    h1{margin:0;font-size:24px;font-weight:600}
+    p.sub{color:var(--muted);margin:4px 0 24px}
+    .label{font-size:14px;color:#555;margin-bottom:6px;font-weight:500}
+    .card{border:1px solid #eee;border-radius:10px;padding:14px;background:#fff}
+    input[type="file"],input[type="text"]{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;margin-top:6px;
+    }
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{
+      padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer;
+      border:1px solid #ddd; user-select:none; transition:all .15s ease;
+    }
+    .chip:hover{transform:translateY(-1px)}
+    .chip.active{background:#ffe4d6;border-color:#f97316}
+    button{
+      padding:12px 16px;background:var(--accent);color:#fff;
+      border:none;border-radius:8px;cursor:pointer;margin-top:20px;font-weight:600;width:100%
+    }
+    #saveMsg{margin-top:10px;font-size:14px}
+    .success{color:#087f23}.error{color:#b91c1c}
+    .bar{height:6px;background:#ffe8da;border-radius:8px;margin-top:8px}
+    .bar div{height:6px;background:#f97316;width:0;transition:width .2s ease}
+    .row{display:flex;gap:10px;margin-top:10px}
+    .muted{color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Complete Your Profile</h1>
+    <p class="sub">Upload your resume, select your skills, and choose your job roles.</p>
+
+    <!-- 1) Resume Upload -->
+    <div class="label">Upload Resume</div>
+    <div class="card">
+      <input id="resumeFile" type="file" accept=".pdf,.doc,.docx" />
+      <div class="bar"><div id="barFill"></div></div>
+      <div id="resumeMsg" class="muted"></div>
+    </div>
+
+    <!-- 2) Skills -->
+    <div class="label" style="margin-top:20px;">Technical Skills</div>
+    <div class="card">
+      <div id="skillsGrid" class="chips"></div>
+      <div class="row">
+        <input id="customSkill" type="text" placeholder="Add custom skill (e.g., Next.js)">
+        <button id="addSkillBtn" type="button" style="width:120px;">Add skill</button>
+      </div>
+      <div class="muted" style="margin-top:6px">Tip: pick at least 3 skills.</div>
+    </div>
+
+    <!-- 3) Job Roles (MULTI-SELECT) -->
+    <div class="label" style="margin-top:20px;">Job Roles (choose one or more)</div>
+    <div class="card">
+      <div id="rolesGrid" class="chips"></div>
+      <div class="muted" style="margin-top:6px">You can select multiple roles you’re interested in.</div>
+    </div>
+
+    <button id="saveBtn" type="button">Finish Profile</button>
+    <div id="saveMsg"></div>
+  </div>
+
+  <script>
+    // Require login
+    const user = JSON.parse(sessionStorage.getItem('jp:user') || 'null');
+    if (!user) location.href = 'signinemployee.html';
+
+    // -------- Skills (chips with custom add) --------
+    const presetSkills = [
+      'HTML','CSS','JavaScript','TypeScript','React','Next.js','Angular','Vue',
+      'Node.js','Express','Java','Spring','Python','Django','Flask',
+      'C#','ASP.NET','C++','Go','PHP','Laravel',
+      'SQL','MySQL','PostgreSQL','MongoDB','Redis',
+      'Docker','Kubernetes','AWS','Azure','GCP',
+      'Figma','Tailwind','Git','CI/CD','Testing'
+    ];
+    const chosenSkills = new Set();
+    const skillsGrid = document.getElementById('skillsGrid');
+
+    function renderSkills(){
+      skillsGrid.innerHTML = '';
+      presetSkills.forEach(s => {
+        const chip = document.createElement('span');
+        chip.className = 'chip' + (chosenSkills.has(s) ? ' active' : '');
+        chip.textContent = s;
+        chip.onclick = () => {
+          chosenSkills.has(s) ? chosenSkills.delete(s) : chosenSkills.add(s);
+          chip.classList.toggle('active');
+        };
+        skillsGrid.appendChild(chip);
+      });
+    }
+    renderSkills();
+
+    document.getElementById('addSkillBtn').onclick = () => {
+      const inp = document.getElementById('customSkill');
+      const v = inp.value.trim();
+      if (!v) return;
+      if (!presetSkills.includes(v)) presetSkills.unshift(v);
+      chosenSkills.add(v);
+      inp.value = '';
+      renderSkills();
+    };
+
+    // -------- Roles (MULTI-SELECT chips) --------
+    const presetRoles = [
+      'Frontend Developer',
+      'Backend Developer',
+      'Full-Stack Developer',
+      'AI/ML Engineer',
+      'Data Scientist',
+      'Data Analyst',
+      'Mobile App Developer',
+      'DevOps Engineer',
+      'Cloud Engineer',
+      'Cybersecurity Analyst',
+      'UI/UX Designer',
+      'QA/Test Engineer',
+      'MLOps Engineer',
+      'Product Engineer',
+      'Blockchain Developer'
+    ];
+    const chosenRoles = new Set();
+    const rolesGrid = document.getElementById('rolesGrid');
+
+    function renderRoles(){
+      rolesGrid.innerHTML = '';
+      presetRoles.forEach(r => {
+        const chip = document.createElement('span');
+        chip.className = 'chip' + (chosenRoles.has(r) ? ' active' : '');
+        chip.textContent = r;
+        chip.onclick = () => {
+          chosenRoles.has(r) ? chosenRoles.delete(r) : chosenRoles.add(r);
+          chip.classList.toggle('active');
+        };
+        rolesGrid.appendChild(chip);
+      });
+    }
+    renderRoles();
+
+    // -------- Resume upload (demo-friendly) --------
+    const barFill = document.getElementById('barFill');
+    const resumeMsg = document.getElementById('resumeMsg');
+    let uploadedResume = null;
+
+    document.getElementById('resumeFile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Show progress instantly for demo
+      barFill.style.width = '45%';
+      resumeMsg.textContent = 'Uploading…';
+
+      // If you have a backend, you can post here (commented demo):
+      // const fd = new FormData();
+      // fd.append('resume', file);
+      // fd.append('candidate_id', (user.candidate && user.candidate.id) || user.id);
+      // const res = await fetch('/api/resumes', { method: 'POST', body: fd });
+
+      // Demo-only success:
+      setTimeout(() => {
+        barFill.style.width = '100%';
+        uploadedResume = { filename: file.name, url: null };
+        resumeMsg.textContent = 'Uploaded: ' + file.name + ' (demo)';
+      }, 700);
+    });
+
+    // -------- Save & Continue --------
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const saveMsg = document.getElementById('saveMsg');
+      const skills = Array.from(chosenSkills);
+      const roles = Array.from(chosenRoles);
+
+      if (!skills.length) { saveMsg.textContent = 'Please select at least one skill.'; saveMsg.className = 'error'; return; }
+      if (!roles.length) { saveMsg.textContent = 'Please select at least one job role.'; saveMsg.className = 'error'; return; }
+
+      // If backend exists, post here (commented demo):
+      // const candidateId = (user.candidate && user.candidate.id) || user.id;
+      // await fetch(`/api/candidates/${candidateId}/skills`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ skills }) });
+      // await fetch(`/api/candidates/${candidateId}/roles`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ roles }) });
+
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skills, roles })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save');
+
+      saveMsg.textContent = 'Profile completed! Redirecting…';
+      saveMsg.className = 'success';
+
+      setTimeout(() => location.href = '/dashboard', 900);
+    } catch(err){
+      console.error(err);
+      saveMsg.txtContent = err.message;
+      saveMsg.className = 'error';
+    }
+    });
+  </script>
+</body>
+</html>

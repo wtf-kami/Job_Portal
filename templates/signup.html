@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Employee Signup — JobPortal</title>
+  <style>
+    :root{
+      --bg:#fff7f3; --card:#fff; --muted:#6b7280; --accent:#f97316;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+      background:linear-gradient(180deg,#fff7f3 0%,#fffaf8 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .wrap{
+      max-width:520px;width:100%;
+      background:var(--card);
+      padding:32px;
+      border-radius:12px;
+      box-shadow:0 10px 30px rgba(17,24,39,0.06);
+      text-align:center;
+      position:relative;
+    }
+    .back-link{
+      position:absolute;
+      top:16px;
+      left:16px;
+      font-size:14px;
+      text-decoration:none;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:4px;
+      transition:color 0.2s ease;
+    }
+    .back-link:hover{color:var(--accent);}
+    .arrow{font-weight:600;font-size:16px;}
+    h1{margin:12px 0 0;font-size:22px;font-weight:600}
+    p.sub{color:var(--muted);margin:8px 0 24px}
+    label{display:block;text-align:left;font-size:13px;color:var(--muted);margin-top:12px}
+    input{
+      width:100%;padding:10px;
+      border-radius:8px;border:1px solid #eee;margin-top:6px;
+    }
+    button{
+      margin-top:20px;padding:10px 14px;border-radius:8px;
+      border:none;background:var(--accent);color:white;cursor:pointer;
+      width:100%;font-size:15px;font-weight:500;
+    }
+    .small{font-size:13px;color:var(--muted);margin-top:12px;text-align:center}
+    .error{color:#b91c1c;margin-top:10px}
+    .success{color:#065f46;margin-top:10px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/signin" class="back-link">
+      <span class="arrow">←</span> <span>Back</span>
+    </a>
+
+    <h1>Create an Employee Account</h1>
+    <p class="sub">Fill in your details to register as an employee.</p>
+
+    <form id="signupForm" action="javascript:void(0)" autocomplete="on">
+      <div class="row">
+        <div>
+          <label for="firstName">First Name</label>
+          <input id="firstName" type="text" required />
+        </div>
+	<div>
+          <label for="firstName">Middle Name</label>
+          <input id="middleName" type="text"/>
+        </div>
+        <div>
+          <label for="lastName">Last Name</label>
+          <input id="lastName" type="text" required />
+        </div>
+      </div>
+
+      <label for="dob">Date of Birth</label>
+      <input id="dob" type="date" required />
+
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="Choose a username" required />
+
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" required />
+
+      <div class="row">
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" minlength="6" required />
+        </div>
+        <div>
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" type="password" minlength="6" required />
+        </div>
+      </div>
+
+      <button id="signupBtn" type="submit">Sign Up</button>
+      <div id="msg" class="small" role="status" aria-live="polite"></div>
+
+      <div class="small">Already have an account? <a href="/signin">Login</a></div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('signupForm');
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('signupBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const middleName = document.getElementById('middleName').value.trim();
+      const dob = document.getElementById('dob').value;
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirmPassword').value;
+
+      if (password !== confirm) {
+        msg.textContent = 'Passwords do not match.';
+        msg.className = 'error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing up...';
+
+      try {
+        const res = await fetch('/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firstName, middleName, lastName, dob, username, email, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Signup failed');
+
+        sessionStorage.setItem('jp:user', JSON.stringify(data.user || { username, email, full_name: firstName + ' ' + lastName }));
+        sessionStorage.setItem('jp:role', 'employee');
+
+        msg.textContent = 'Signup successful! Redirecting...';
+        msg.className = 'success';
+        setTimeout(() => (window.location.href = '/onboarding'), 800);
+      } catch (err) {
+        console.error(err);
+        msg.textContent = 'Signup failed. Please try again.';
+        msg.className = 'error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign Up';
+      }
+    });
+  </script>
+</body>
+</html>

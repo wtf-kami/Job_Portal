@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Post a Job — Organization</title>
+  <style>
+    :root{ --bg:#fff7f3; --card:#fff; --muted:#6b7280; --accent:#f97316; }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+      background:linear-gradient(180deg,#fff7f3,#fffaf8);
+      min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px;
+    }
+    .wrap{
+      width:100%;max-width:860px;background:var(--card);
+      border:1px solid #eee;border-radius:16px;box-shadow:0 10px 30px rgba(17,24,39,.08);
+      padding:24px;
+    }
+    h1{margin:0 0 4px 0;font-size:22px}
+    p.lead{margin:0 0 18px 0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .full{grid-column:1 / -1}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input, textarea, select{
+      width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;
+    }
+    textarea{min-height:140px;resize:vertical}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:8px 10px;border:1px solid #e5e7eb;border-radius:999px;background:#fff;
+      font-size:13px;
+    }
+    .chip button{border:none;background:transparent;cursor:pointer;font-size:16px;line-height:1}
+    .row{display:flex;gap:8px}
+    .btn{
+      padding:12px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:600
+    }
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.ghost{background:#fff;border:1px solid #e5e7eb}
+    .bar{height:6px;background:#ffe8da;border-radius:8px;overflow:hidden}
+    .bar>div{height:100%;width:0;background:#f97316;transition:width .25s ease}
+    #msg{margin-top:12px}
+    .success{color:#065f46}
+    .error{color:#b91c1c}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/" class="back-link">
+      <span class="arrow">←</span> <span>Back</span>
+    </a>
+    <h1>Post a Job</h1>
+    <p class="lead">Fill in the details below. Skills and Roles accept multiple values.</p>
+
+    <form id="jobForm" class="grid">
+      <!-- Title -->
+      <div class="full">
+        <label for="title">Job Title *</label>
+        <input id="title" placeholder="e.g., Frontend Engineer" required />
+      </div>
+
+      <!-- Company & Location -->
+      <div>
+        <label for="company">Company *</label>
+        <input id="company" placeholder="Your company name" required />
+      </div>
+      <div>
+        <label for="location">Location *</label>
+        <input id="location" placeholder="City, Country or Remote" required />
+      </div>
+
+      <!-- Primary Role (string) -->
+      <div>
+        <label for="role">Primary Role *</label>
+        <input id="role" placeholder="e.g., Frontend Developer" required />
+      </div>
+
+      <!-- Salary range -->
+      <div>
+        <label for="salary">Salary Range</label>
+        <input id="salary" placeholder="e.g., ₹8–12 LPA / $90k–120k" />
+      </div>
+
+      <!-- Apply link -->
+      <div class="full">
+        <label for="apply_link">Apply Link</label>
+        <input id="apply_link" type="url" placeholder="https://example.com/apply" />
+      </div>
+
+      <!-- Posted on (datetime-local) -->
+      <div>
+        <label for="posted_on">Posted On</label>
+        <input id="posted_on" type="datetime-local"/>
+      </div>
+
+      <!-- Description -->
+      <div class="full">
+        <label for="description">Job Description</label>
+        <textarea id="description" placeholder="Describe responsibilities, requirements, benefits…"></textarea>
+      </div>
+
+      <!-- Skills (JSON array) -->
+      <div class="full">
+        <label>Skills Required (add multiple)</label>
+        <div class="row">
+          <input id="skillInput" placeholder="Type a skill and click Add (e.g., React)"/>
+          <button class="btn ghost" id="addSkill" type="button">Add</button>
+        </div>
+        <div class="chips" id="skillsChips"></div>
+      </div>
+
+      <!-- Roles (JSON array) -->
+      <div class="full">
+        <label>Relevant Roles (add multiple)</label>
+        <div class="row">
+          <select id="rolePreset">
+            <option value="">Select quick role…</option>
+            <option>Frontend Developer</option>
+            <option>Backend Developer</option>
+            <option>Full-Stack Developer</option>
+            <option>AI/ML Engineer</option>
+            <option>Data Analyst</option>
+            <option>Mobile App Developer</option>
+            <option>DevOps Engineer</option>
+            <option>Cloud Engineer</option>
+            <option>Cybersecurity Analyst</option>
+            <option>UI/UX Designer</option>
+            <option>QA/Test Engineer</option>
+          </select>
+          <input id="roleText" placeholder="Or type a custom role"/>
+          <button class="btn ghost" id="addRole" type="button">Add</button>
+        </div>
+        <div class="chips" id="rolesChips"></div>
+      </div>
+
+      <!-- Submit -->
+      <div class="full">
+        <button class="btn primary" id="submitBtn" type="submit">Publish Job</button>
+        <div id="msg"></div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Require org session if you have it; otherwise skip this guard.
+    // const org = JSON.parse(sessionStorage.getItem('jp:org') || 'null');
+    // if (!org) location.href = 'sign_in_org.html';
+
+    // Prefill posted_on with current local datetime
+    (function setNow() {
+      const pad = n => String(n).padStart(2, '0');
+      const d = new Date();
+      const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      document.getElementById('posted_on').value = local;
+    })();
+
+    // Skills chips state
+    const skills = new Set();
+    const roles = new Set();
+    const skillsChips = document.getElementById('skillsChips');
+    const rolesChips = document.getElementById('rolesChips');
+
+    function renderChips(container, set){
+      container.innerHTML = '';
+      if (!set.size){
+        const muted = document.createElement('div');
+        muted.style.color = '#6b7280';
+        muted.style.fontSize = '13px';
+        muted.textContent = 'None added yet';
+        container.appendChild(muted);
+        return;
+      }
+      set.forEach(val => {
+        const el = document.createElement('span');
+        el.className = 'chip';
+        el.innerHTML = `<span>${val}</span><button title="Remove" aria-label="Remove">×</button>`;
+        el.querySelector('button').onclick = () => { set.delete(val); renderChips(container, set); };
+        container.appendChild(el);
+      });
+    }
+    renderChips(skillsChips, skills);
+    renderChips(rolesChips, roles);
+
+    // Add skill
+    document.getElementById('addSkill').onclick = () => {
+      const inp = document.getElementById('skillInput');
+      const v = inp.value.trim();
+      if (!v) return;
+      skills.add(v);
+      inp.value = '';
+      renderChips(skillsChips, skills);
+    };
+
+    // Add role (from select or text)
+    document.getElementById('addRole').onclick = () => {
+      const sel = document.getElementById('rolePreset');
+      const txt = document.getElementById('roleText');
+      const v = (txt.value.trim() || sel.value.trim());
+      if (!v) return;
+      roles.add(v);
+      txt.value = '';
+      sel.value = '';
+      renderChips(rolesChips, roles);
+    };
+
+    // Submit handler
+    const form = document.getElementById('jobForm');
+    const msg = document.getElementById('msg');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      msg.className = '';
+
+      const payload = {
+        title: document.getElementById('title').value.trim(),
+        company: document.getElementById('company').value.trim(),
+        location: document.getElementById('location').value.trim(),
+        role: document.getElementById('role').value.trim(), // primary role (string)
+        skills_required: Array.from(skills),                 // JSON array
+        description: document.getElementById('description').value.trim() || null,
+        salary_range: document.getElementById('salary').value.trim() || null,
+        posted_on: document.getElementById('posted_on').value ? new Date(document.getElementById('posted_on').value).toISOString() : null,
+        apply_link: document.getElementById('apply_link').value.trim() || null,
+        roles: Array.from(roles)                             // JSON array (additional role tags)
+      };
+
+      // Simple validation
+      if (!payload.title || !payload.company || !payload.location || !payload.role) {
+        msg.textContent = 'Please fill all required fields (Title, Company, Location, Primary Role).';
+        msg.className = 'error';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Publishing…';
+
+    try {
+  const res = await fetch('/api/jobs', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+
+  if (!res.ok) throw new Error(data.error || 'Failed to post job');
+
+  msg.textContent = 'Job posted successfully!';
+  msg.className = 'success';
+
+  setTimeout(() => {
+    form.reset();
+    skills.clear(); roles.clear();
+    renderChips(skillsChips, skills);
+    renderChips(rolesChips, roles);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Publish Job';
+  }, 800);
+} catch (err) {
+  console.error(err);
+  msg.textContent = 'Could not publish the job. Please try again.';
+  msg.className = 'error';
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Publish Job';
+}
+
+    });
+  </script>
+</body>
+</html>

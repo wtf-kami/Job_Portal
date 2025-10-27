@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Employee Login — JobPortal</title>
+  <style>
+    :root{
+      --bg:#fff7f3; --card:#fff; --muted:#6b7280; --accent:#f97316;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+      background:linear-gradient(180deg,#fff7f3 0%,#fffaf8 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .wrap{
+      max-width:420px;width:100%;
+      background:var(--card);
+      padding:32px;
+      border-radius:12px;
+      box-shadow:0 10px 30px rgba(17,24,39,0.06);
+      text-align:center;
+      position:relative;
+    }
+    .back-link{
+      position:absolute;
+      top:16px;
+      left:16px;
+      font-size:14px;
+      text-decoration:none;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:4px;
+      transition:color 0.2s ease;
+    }
+    .back-link:hover{color:var(--accent);}
+    .arrow{font-weight:600;font-size:16px;}
+    h1{margin:12px 0 0;font-size:22px;font-weight:600}
+    p.sub{color:var(--muted);margin:8px 0 24px}
+    label{display:block;text-align:left;font-size:13px;color:var(--muted);margin-top:12px}
+    input{
+      width:100%;padding:10px;
+      border-radius:8px;border:1px solid #eee;margin-top:6px;
+    }
+    button{
+      margin-top:20px;padding:10px 14px;border-radius:8px;
+      border:none;background:var(--accent);color:white;cursor:pointer;
+      width:100%;font-size:15px;font-weight:500;
+    }
+    .small{font-size:13px;color:var(--muted);margin-top:12px}
+    .error{color:#b91c1c;margin-top:10px}
+    .success{color:#065f46;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Back to login option link -->
+    <a href="/" class="back-link">
+      <span class="arrow">←</span> <span>Back</span>
+    </a>
+
+    <h1>Employee Login</h1>
+    <p class="sub">Please enter your username and password to continue.</p>
+
+    <form id="loginForm" action="javascript:void(0)" autocomplete="on">
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="Enter your username" required />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Enter your password" required />
+
+      <button id="loginBtn" type="submit">Login</button>
+
+      <div id="msg"></div>
+
+      <div class="small">
+        New user? <a href="/signup">Create an account</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (!username || !password) {
+        msg.textContent = 'Please enter both username and password.';
+        msg.className = 'error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      try {
+        const res = await fetch('/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if(data.redirect){
+              sessionStorage.setItem('jp:user', JSON.stringify({ username })); 
+              location.href = window.location.origin + data.redirect;
+            }else if (data.error){
+              msg.textContent = data.error;
+              msg.className = 'error'
+              //alert(data.error);
+            }else{
+              sessionStorage.setItem('jp:user',JSON.stringify(data));
+              sessionStorage.setItem('jp:role','employee');
+              msg.textContent = 'Login Successful. Redirecting';
+              msg.className = 'success';
+              setTimeout(()=>window.location.href = '/onboarding',800);
+            }
+          });
+
+      } catch (err) {
+        console.error(err);
+        msg.textContent = 'Login failed. Please try again.';
+        msg.className = 'error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Login';
+      }
+    });
+  </script>
+</body>
+</html>

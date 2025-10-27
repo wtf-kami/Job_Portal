@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login — JobPortal</title>
+  <style>
+    :root{
+      --bg:#fff7f3;
+      --card:#fff;
+      --muted:#6b7280;
+      --accent:#f97316;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+      background:linear-gradient(180deg,#fff7f3 0%,#fffaf8 100%);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+    .wrap{
+      width:100%;
+      max-width:720px;
+      background:var(--card);
+      border-radius:16px;
+      padding:32px;
+      box-shadow:0 10px 30px rgba(17,24,39,0.08);
+      text-align:center;
+    }
+    h1{margin:0;font-size:22px}
+    p.sub{color:var(--muted);margin-top:8px;margin-bottom:24px}
+    .choices{
+      display:flex;
+      gap:16px;
+      justify-content:center;
+      margin-top:18px;
+      flex-wrap:wrap;
+    }
+    .choice{
+      flex:1 1 240px;
+      min-width:200px;
+      padding:22px;
+      border-radius:12px;
+      cursor:pointer;
+      border:1px solid rgba(0,0,0,0.04);
+      background:linear-gradient(180deg,#fff 0%,#fffaf8 100%);
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .choice:hover{transform:translateY(-4px); box-shadow:0 8px 20px rgba(17,24,39,0.06)}
+    .choice .title{font-weight:600;font-size:16px}
+    .choice .desc{color:var(--muted);font-size:13px;margin-top:8px}
+    .emp{border-left:4px solid #60a5fa}
+    .org{border-left:4px solid #f97316}
+    .tiny{font-size:12px;color:var(--muted);margin-top:18px}
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main" aria-labelledby="mainTitle">
+    <h1 id="mainTitle">Welcome to JobPortal</h1>
+    <p class="sub">Choose how you want to sign in:</p>
+
+    <div class="choices">
+      <button class="choice emp" id="asEmployee">
+        <div class="title">Login as Employee</div>
+        <div class="desc">Search and apply for jobs, upload your resume, and view applications.</div>
+      </button>
+
+      <button class="choice org" id="asOrganization">
+        <div class="title">Login as Organization</div>
+        <div class="desc">Post job openings, review applicants, and manage company profiles.</div>
+      </button>
+    </div>
+
+    <div class="tiny">You can change this later in your account settings.</div>
+  </div>
+
+  <script>
+    // Store role and redirect to next page
+    function chooseRole(role) {
+      sessionStorage.setItem('jp:role', role);
+      if (role === 'employee') {
+        // go to employee sign-in page
+        window.location.href = '/signin';
+      } else if (role === 'organization') {
+        window.location.href = '/jobposting';
+      }
+    }
+
+    document.getElementById('asEmployee').addEventListener('click', () => chooseRole('employee'));
+    document.getElementById('asOrganization').addEventListener('click', () => chooseRole('organization'));
+  </script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Dashboard — JobPortal</title>
+  <style>
+    :root{ --bg:#fff7f3; --card:#fff; --muted:#6b7280; --accent:#f97316; --ink:#111827;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#fff7f3,#fffaf8);color:var(--ink)}
+    header{
+      position:sticky;top:0;background:#fff;z-index:10;border-bottom:1px solid #eee;
+      padding:14px 18px;display:flex;align-items:center;gap:12px;justify-content:space-between
+    }
+    .brand{font-weight:800}
+    .user{color:var(--muted);font-size:14px}
+    .container{max-width:1080px;margin:20px auto;padding:0 16px}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #eee;padding:8px 12px;border-radius:999px;font-size:13px;margin:4px 6px 0 0;background:#fff}
+    .pill.active{background:#ffe4d6;border-color:#f97316}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .search{flex:1;min-width:240px}
+    input[type="text"]{width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb}
+    .card{
+      background:var(--card);border:1px solid #eee;border-radius:12px;padding:16px;
+      box-shadow:0 8px 24px rgba(17,24,39,.06);
+    }
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+    .jobs{grid-column:span 8}
+    .side{grid-column:span 4}
+    .job{display:flex;flex-direction:column;gap:8px}
+    .title{font-weight:700;font-size:16px}
+    .meta{font-size:13px;color:var(--muted)}
+    .tags{display:flex;gap:6px;flex-wrap:wrap}
+    .tag{font-size:11px;border:1px solid #eee;padding:4px 8px;border-radius:999px;background:#fff}
+    .btn{
+      padding:10px 12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600
+    }
+    .btn.ghost{background:#fff;color:var(--ink);border:1px solid #eee}
+    .muted{color:var(--muted)}
+    .empty{padding:24px;text-align:center;color:var(--muted)}
+    @media (max-width: 900px){ .jobs{grid-column:span 12} .side{grid-column:span 12} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">JobPortal</div>
+    <div class="row" style="align-items:center">
+      <div class="user" id="welcome"></div>
+      <button class="btn ghost" id="logoutBtn" title="Log out">Log out</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Top controls -->
+    <div class="row" style="margin-bottom:10px">
+      <div class="search"><input id="q" type="text" placeholder="Search jobs by title, company, location…"></div>
+      <button class="btn ghost" id="clearFilters">Clear filters</button>
+    </div>
+
+    <!-- Selected roles as toggle chips -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="muted" style="margin-bottom:6px">Your target roles</div>
+      <div id="roleChips" class="row"></div>
+    </div>
+
+    <div class="grid">
+      <div class="jobs">
+        <div class="card">
+          <div class="muted" style="margin-bottom:10px">Matching jobs</div>
+          <div id="jobList"></div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card" style="margin-bottom:16px">
+          <div class="muted" style="margin-bottom:8px">Your profile snapshot</div>
+          <div id="profileBox" class="small"></div>
+        </div>
+
+        <div class="card">
+          <div class="muted" style="margin-bottom:8px">Tips</div>
+          <ul class="muted" style="margin:0;padding-left:18px">
+            <li>Click a role chip to toggle it on/off.</li>
+            <li>Use the search to narrow results.</li>
+            <li>Boost your matches by adding skills in onboarding.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // ---- Session check ----
+    const user = JSON.parse(sessionStorage.getItem('jp:user') || 'null');
+    if (!user) location.href = '/signin';
+  
+    const skills = JSON.parse(sessionStorage.getItem('jp:skills') || '[]');
+    const roles  = JSON.parse(sessionStorage.getItem('jp:roleCategories') || '[]');
+  
+    // ---- Welcome + profile box ----
+    const welcomeEl = document.getElementById('welcome');
+    const profileBox = document.getElementById('profileBox');
+    const displayName = (user.candidate && user.candidate.full_name) || user.full_name || user.username || 'Employee';
+    welcomeEl.textContent = `Welcome, ${displayName}`;
+    profileBox.innerHTML = `
+      <div><strong>Name:</strong> ${displayName}</div>
+      <div><strong>Roles:</strong> ${roles.length ? roles.join(', ') : '—'}</div>
+      <div><strong>Skills:</strong> ${skills.length ? skills.join(', ') : '—'}</div>
+    `;
+  
+    // ---- Role chips (toggle) ----
+    const activeRoles = new Set(roles);
+    const roleChips = document.getElementById('roleChips');
+  
+    function renderRoleChips(){
+      roleChips.innerHTML = '';
+      const list = roles.length ? roles : ['Frontend Developer','Backend Developer','Full-Stack Developer','AI/ML Engineer'];
+      list.forEach(r => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'pill' + (activeRoles.has(r) ? ' active':'');
+        el.textContent = r;
+        el.onclick = () => {
+          if (activeRoles.has(r)) activeRoles.delete(r); else activeRoles.add(r);
+          el.classList.toggle('active');
+          loadJobs();
+        };
+        roleChips.appendChild(el);
+      });
+    }
+    renderRoleChips();
+  
+    // ---- Helper: Role keyword mapping & matching ----
+    const roleKeywords = {
+      "Frontend Developer": ["react", "vue", "angular", "javascript", "html", "css", "ui"],
+      "Backend Developer": ["python", "django", "flask", "node", "express", "api", "backend"],
+      "Full-Stack Developer": ["frontend", "backend", "full-stack", "mern", "mean", "dev"],
+      "AI/ML Engineer": ["machine learning", "deep learning", "ai", "ml", "pytorch", "tensorflow", "model"]
+    };
+  
+    function jobMatchesRoles(job, activeRoleSet){
+      if (activeRoleSet.size === 0) return true;
+      const jobRoles = (job.roles || []).map(r => r.toLowerCase());
+      for (const role of activeRoleSet) {
+        if (jobRoles.includes(role.toLowerCase())) return true;
+      }
+      const hay = (job.title + ' ' + (job.roleHint||'')).toLowerCase();
+      for (const role of activeRoleSet){
+        const kws = roleKeywords[role] || [];
+        if (kws.some(k => hay.includes(k))) return true;
+        if (hay.includes(role.toLowerCase())) return true;
+      }
+      return false;
+    }
+  
+    // ---- Fetch jobs ----
+    let allJobs = [];
+  
+    async function loadJobs(){
+      try {
+        const rolesParam = encodeURIComponent([...activeRoles].join(','));
+        const res = await fetch(`/api/jobs?roles=${rolesParam}`, { cache: 'no-store' });
+  
+        if (!res.ok) throw new Error('Bad response');
+        allJobs = await res.json();
+  
+        renderJobs();
+      } catch (e) {
+        console.error('Error loading jobs:', e);
+        jobList.innerHTML = `<div class="empty">Failed to load jobs. Please try again later.</div>`;
+      }
+    }
+  
+    // ---- Rendering ----
+    const jobList = document.getElementById('jobList');
+    const q = document.getElementById('q');
+  
+    function renderJobs(){
+      const query = (q.value || '').toLowerCase();
+      let filtered = allJobs.filter(j => {
+        const text = (j.title + ' ' + j.employer + ' ' + j.location + ' ' + (j.roleHint||'')).toLowerCase();
+        const matchesSearch = query ? text.includes(query) : true;
+        const matchesRole = jobMatchesRoles(j, activeRoles);
+        return matchesSearch && matchesRole;
+      });
+  
+      filtered = filtered.map(j => ({ job: j, score: 1 })) // simple sorting for now
+                         .map(x => x.job);
+  
+      jobList.innerHTML = '';
+      if (!filtered.length){
+        jobList.innerHTML = `<div class="empty">No jobs match your current role filters. Try clearing filters or adjusting your search.</div>`;
+        return;
+      }
+  
+      filtered.forEach(j => {
+        const el = document.createElement('div');
+        el.className = 'job';
+        el.style.borderTop = '1px solid #f3f4f6';
+        el.style.padding = '12px 0';
+        el.innerHTML = `
+          <div class="title">${j.title}</div>
+          <div class="meta">${j.company} • ${j.location}</div>
+          <div class="tags">${(j.skills_required||'').split(',').slice(0,6).map(s=>`<span class="tag">${s.trim()}</span>`).join('')}</div>
+          <div class="row" style="margin-top:6px">
+            <a href="${j.apply_link}" target="_blank" class="btn">Apply</a>
+          </div>
+        `;
+        jobList.appendChild(el);
+      });
+    }
+  
+    q.addEventListener('input', () => renderJobs());
+    document.getElementById('clearFilters').onclick = () => {
+      q.value = '';
+      activeRoles.clear();
+      renderRoleChips();
+      renderJobs();
+    };
+  
+    document.getElementById('logoutBtn').onclick = () => {
+      sessionStorage.removeItem('jp:user');
+      sessionStorage.removeItem('jp:skills');
+      sessionStorage.removeItem('jp:roleCategories');
+      sessionStorage.removeItem('jp:resume');
+      location.href = '/signin';
+    };
+  
+    loadJobs();
+  </script>
+  
+</body>
+</html>
